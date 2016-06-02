@@ -27,7 +27,7 @@ import SwiftyJSON
 class AllRemoteOriginMiddleware: RouterMiddleware {
     func handle(request: RouterRequest, response: RouterResponse, next: () -> Void) {
 
-        response.setHeader("Access-Control-Allow-Origin", value: "*")
+        response.headers.append("Access-Control-Allow-Origin", value: "*")
 
         next()
     }
@@ -50,8 +50,8 @@ func setupRoutes(router: Router, todos: TodoCollection) {
 
         todos.getAll() {
             todos in
-
-            let json = JSON(TodoCollectionArray.serialize(items: todos))
+ 
+            let json = JSON(TodoCollectionArray.serialize(items: todos) as AnyObject)
             do {
                 try response.status(.OK).send(json: json).end()
             } catch {
@@ -80,7 +80,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
 
             if let item = item {
 
-                let result = JSON(item.serialize())
+                let result = JSON(item.serialize() as AnyObject)
 
                 do {
                     try response.status(.OK).send(json: result).end()
@@ -103,8 +103,8 @@ func setupRoutes(router: Router, todos: TodoCollection) {
     router.options("/*") {
         request, response, next in
 
-        response.setHeader("Access-Control-Allow-Headers", value: "accept, content-type")
-        response.setHeader("Access-Control-Allow-Methods", value: "GET,HEAD,POST,DELETE,OPTIONS,PUT,PATCH")
+        response.headers.append("Access-Control-Allow-Headers", value: "accept, content-type")
+        response.headers.append("Access-Control-Allow-Methods", value: "GET,HEAD,POST,DELETE,OPTIONS,PUT,PATCH")
 
         response.status(.OK)
 
@@ -139,7 +139,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
 
             newItem in
 
-            let result = JSON(newItem.serialize())
+            let result = JSON(newItem.serialize() as AnyObject)
 
             do {
                 try response.status(.OK).send(json: result).end()
@@ -179,7 +179,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
 
             newItem in
 
-            let result = JSON(newItem!.serialize())
+            let result = JSON(newItem!.serialize() as AnyObject)
 
             response.status(.OK).send(json: result)
 
@@ -221,7 +221,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
 
             if let newItem = newItem {
 
-                let result = JSON(newItem.serialize())
+                let result = JSON(newItem.serialize() as AnyObject)
 
                 do {
                     try response.status(.OK).send(json: result).end()
