@@ -15,7 +15,7 @@
  */
 
 import Foundation
-import CFEnvironment
+import CloudEnvironment
 
 public struct Configuration {
     
@@ -24,7 +24,7 @@ public struct Configuration {
     let firstPathSegment = "todos"
     init() {
         do {
-            let appEnv = try CFEnvironment.getAppEnv()
+            let appEnv = try CloudEnvironment.getAppEnv()
             port = appEnv.port
             url = appEnv.url
         }

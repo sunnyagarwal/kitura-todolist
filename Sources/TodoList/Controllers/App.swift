@@ -51,7 +51,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
         todos.getAll() {
             todos in
  
-            let json = JSON(TodoCollectionArray.serialize(items: todos) as AnyObject)
+            let json = JSON(TodoCollectionArray.serialize(items: todos) as! AnyObject)
             do {
                 try response.status(.OK).send(json: json).end()
             } catch {
@@ -80,7 +80,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
 
             if let item = item {
 
-                let result = JSON(item.serialize() as AnyObject)
+                let result = JSON(item.serialize() as! AnyObject)
 
                 do {
                     try response.status(.OK).send(json: result).end()
@@ -139,7 +139,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
 
             newItem in
 
-            let result = JSON(newItem.serialize() as AnyObject)
+            let result = JSON(newItem.serialize() as! AnyObject)
 
             do {
                 try response.status(.OK).send(json: result).end()
@@ -179,7 +179,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
 
             newItem in
 
-            let result = JSON(newItem!.serialize() as AnyObject)
+            let result = JSON(newItem!.serialize() as! AnyObject)
 
             response.status(.OK).send(json: result)
 
@@ -221,7 +221,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
 
             if let newItem = newItem {
 
-                let result = JSON(newItem.serialize() as AnyObject)
+                let result = JSON(newItem.serialize() as! AnyObject)
 
                 do {
                     try response.status(.OK).send(json: result).end()

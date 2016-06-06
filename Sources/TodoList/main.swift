@@ -23,7 +23,7 @@ import LoggerAPI
 
 import Foundation
 
-import CFEnvironment
+import CloudEnvironment
 
 ///
 /// Set up a simple Logger
