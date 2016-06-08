@@ -73,7 +73,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
     router.get(config.firstPathSegment + "/:id") {
         request, response, next in
 
-        guard let id = request.parameters["id"] else {
+        guard let id = request.params["id"] else {
             response.status(.badRequest)
             Log.error("Request does not contain ID")
             return
@@ -166,7 +166,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
     router.post(config.firstPathSegment + "/:id") {
         request, response, next in
 
-        guard let id = request.parameters["id"] else {
+        guard let id = request.params["id"] else {
             response.status(.badRequest)
             Log.error("id parameter not found in request")
             return
@@ -210,7 +210,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
     router.patch(config.firstPathSegment + "/:id") {
         request, response, next in
 
-        guard let id = request.parameters["id"] else {
+        guard let id = request.params["id"] else {
             response.status(.badRequest)
             Log.error("id parameter not found in request")
             return
@@ -263,7 +263,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
 
         Log.info("Requesting a delete")
 
-        guard let id = request.parameters["id"] else {
+        guard let id = request.params["id"] else {
             Log.warning("Could not parse ID")
             response.status(.badRequest)
             return
