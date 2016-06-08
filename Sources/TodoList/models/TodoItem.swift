@@ -45,12 +45,22 @@ struct TodoItem {
     /// Returns: a Dictionary populated with fields.
     ///
     func serialize() -> JSONDictionary {
-        var result = JSONDictionary()
-        result["id"] = id as! AnyObject
-        result["order"] = order as! AnyObject
-        result["title"] = title as! AnyObject
-        result["completed"] = completed as! AnyObject
-        result["url"] = url as! AnyObject
+         var result = JSONDictionary()
+        
+#if os(Linux)
+        result["id"] = id as Any
+        result["order"] = order as Any
+        result["title"] = title as Any
+        result["completed"] = completed as Any
+        result["url"] = url as Any
+#else
+        result["id"] = id as AnyObject
+        result["order"] = order as AnyObject
+        result["title"] = title as AnyObject
+        result["completed"] = completed as AnyObject
+        result["url"] = url as AnyObject
+#endif
+        
         return result
     }
 

@@ -51,7 +51,12 @@ func setupRoutes(router: Router, todos: TodoCollection) {
         todos.getAll() {
             todos in
  
-            let json = JSON(TodoCollectionArray.serialize(items: todos) as! AnyObject)
+#if os(Linux)
+            let json = JSON(TodoCollectionArray.serialize(items: todos) as Any)
+#else
+            let json = JSON(TodoCollectionArray.serialize(items: todos) as AnyObject)
+#endif
+                
             do {
                 try response.status(.OK).send(json: json).end()
             } catch {
@@ -68,7 +73,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
     router.get(config.firstPathSegment + "/:id") {
         request, response, next in
 
-        guard let id = request.params["id"] else {
+        guard let id = request.parameters["id"] else {
             response.status(.badRequest)
             Log.error("Request does not contain ID")
             return
@@ -80,8 +85,12 @@ func setupRoutes(router: Router, todos: TodoCollection) {
 
             if let item = item {
 
-                let result = JSON(item.serialize() as! AnyObject)
-
+#if os(Linux)
+                let result = JSON(item.serialize() as Any)
+#else
+                let result = JSON(item.serialize() as AnyObject)
+#endif
+                
                 do {
                     try response.status(.OK).send(json: result).end()
                 } catch {
@@ -138,9 +147,13 @@ func setupRoutes(router: Router, todos: TodoCollection) {
         todos.add(title: title, order: order, completed: completed) {
 
             newItem in
-
-            let result = JSON(newItem.serialize() as! AnyObject)
-
+            
+#if os(Linux)
+            let result = JSON(newItem.serialize() as Any)
+#else
+            let result = JSON(newItem.serialize() as AnyObject)
+#endif
+            
             do {
                 try response.status(.OK).send(json: result).end()
             } catch {
@@ -153,7 +166,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
     router.post(config.firstPathSegment + "/:id") {
         request, response, next in
 
-        guard let id = request.params["id"] else {
+        guard let id = request.parameters["id"] else {
             response.status(.badRequest)
             Log.error("id parameter not found in request")
             return
@@ -179,8 +192,12 @@ func setupRoutes(router: Router, todos: TodoCollection) {
 
             newItem in
 
-            let result = JSON(newItem!.serialize() as! AnyObject)
-
+#if os(Linux)
+            let result = JSON(newItem!.serialize() as Any)
+#else
+            let result = JSON(newItem!.serialize() as AnyObject)
+#endif
+            
             response.status(.OK).send(json: result)
 
         }
@@ -193,7 +210,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
     router.patch(config.firstPathSegment + "/:id") {
         request, response, next in
 
-        guard let id = request.params["id"] else {
+        guard let id = request.parameters["id"] else {
             response.status(.badRequest)
             Log.error("id parameter not found in request")
             return
@@ -220,9 +237,13 @@ func setupRoutes(router: Router, todos: TodoCollection) {
             newItem in
 
             if let newItem = newItem {
-
-                let result = JSON(newItem.serialize() as! AnyObject)
-
+                
+#if os(Linux)
+                let result = JSON(newItem.serialize() as Any)
+#else
+                let result = JSON(newItem.serialize() as AnyObject)
+#endif
+                
                 do {
                     try response.status(.OK).send(json: result).end()
                 } catch {
@@ -242,7 +263,7 @@ func setupRoutes(router: Router, todos: TodoCollection) {
 
         Log.info("Requesting a delete")
 
-        guard let id = request.params["id"] else {
+        guard let id = request.parameters["id"] else {
             Log.warning("Could not parse ID")
             response.status(.badRequest)
             return
