@@ -55,7 +55,7 @@ setupRoutes( router: router, todos: todos )
 /// Start the server
 ///
 guard let port = config.port else {
-    "Could not initialize environment. Exiting..."
+    Log.error("Could not initialize environment. Exiting...")
     fatalError()
 }
 
