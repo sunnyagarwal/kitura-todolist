@@ -22,14 +22,21 @@ import SwiftyJSON
 
 import TodoListAPI
 
+import Credentials
+import CredentialsFacebookToken
 
 final class TodoListController {
     
     let todos: TodoListAPI
     let router = Router()
     
+    let credentials = Credentials()
+    let fbCredentialsPlugin = CredentialsFacebookToken()
+    
     init(backend: TodoListAPI) {
         self.todos = backend
+        
+        credentials.register(plugin: fbCredentialsPlugin)
         
         _setupRoutes()
         
@@ -49,6 +56,8 @@ final class TodoListController {
         router.patch(id, handler: updateItemByID)
         router.delete(id, handler: deleteByID)
         router.delete("/", handler: deleteAll)
+        
+        router.post("/collection/:new", middleware: credentials)
         
         
     }
