@@ -144,6 +144,7 @@ final class TodoListController {
             return
         }
         
+        let user = json["user"].stringValue
         let title = json["title"].stringValue
         let order = json["order"].intValue
         let completed = json["completed"].boolValue
@@ -151,7 +152,7 @@ final class TodoListController {
         Log.info("Received \(title)")
         
         do {
-            try todos.add(title: title, order: order, completed: completed) {
+            try todos.add(user: user, title: title, order: order, completed: completed) {
                 
                 newItem in
                 
