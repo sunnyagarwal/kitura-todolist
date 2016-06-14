@@ -43,6 +43,7 @@ extension TodoItem : DictionaryConvertible {
     func toDictionary() -> JSONDictionary {
         var result = JSONDictionary()
         result["id"] = self.id
+        result["user"] = self.users
         result["order"] = self.order
         result["title"] = self.title
         result["completed"] = self.completed
