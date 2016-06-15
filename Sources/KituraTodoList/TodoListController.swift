@@ -32,11 +32,7 @@ final class TodoListController {
     
     let credentials = Credentials()
     let fbCredentialsPlugin = CredentialsFacebookToken()
-    
-    var profile: UserProfile?
-    /*var userID: String
-    var userName: String*/
-    
+
     init(backend: TodoListAPI) {
         self.todos = backend
         
@@ -55,8 +51,7 @@ final class TodoListController {
         router.get("/", handler: self.get)
         router.get(id, handler: getByID)
         router.options("/*", handler: getOptions)
-        router.post("/collection/:new", middleware: credentials)
-        router.post("/collection/:new", handler: getUserInfo)
+        router.post("/", middleware: credentials)
         router.post("/", handler: addItem )
         router.post(id, handler: postByID)
         router.patch(id, handler: updateItemByID)
@@ -64,12 +59,7 @@ final class TodoListController {
         router.delete("/", handler: deleteAll)
     }
     
-    private func getUserInfo(request: RouterRequest, response: RouterResponse, next: () -> Void){
-        let tprofile = request.userProfile
-        profile = tprofile
-        /*let userID = profile!.id
-        let userName = profile!.displayName*/
-    }
+
     private func get(request: RouterRequest, response: RouterResponse, next: ()->Void) {
         
         do {
@@ -152,7 +142,13 @@ final class TodoListController {
             return
         }
         
-        let user = json["user"].stringValue
+        guard let profile = request.userProfile else{
+            response.status(HTTPStatusCode.badRequest)
+            Log.error("Request does not contain facebok user profile")
+            return
+        }
+        
+        let user = profile.id
         let title = json["title"].stringValue
         let order = json["order"].intValue
         let completed = json["completed"].boolValue
@@ -198,12 +194,13 @@ final class TodoListController {
             return
         }
         
+        let user = json["user"].stringValue
         let title = json["title"].stringValue
         let order = json["order"].intValue
         let completed = json["completed"].boolValue
         
         do {
-            try todos.update(id: id, title: title, order: order, completed: completed) {
+            try todos.update(id: id, user: user, title: title, order: order, completed: completed) {
                 
                 newItem in
                 
@@ -238,12 +235,13 @@ final class TodoListController {
             return
         }
         
+        let user = json["user"].stringValue
         let title = json["title"].stringValue
         let order = json["order"].intValue
         let completed = json["completed"].boolValue
         
         do {
-            try todos.update(id: id, title: title, order: order, completed: completed) {
+            try todos.update(id: id, user: user, title: title, order: order, completed: completed) {
                 
                 newItem in
                 
