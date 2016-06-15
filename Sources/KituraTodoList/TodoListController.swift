@@ -33,6 +33,10 @@ final class TodoListController {
     let credentials = Credentials()
     let fbCredentialsPlugin = CredentialsFacebookToken()
     
+    var profile: UserProfile?
+    /*var userID: String
+    var userName: String*/
+    
     init(backend: TodoListAPI) {
         self.todos = backend
         
@@ -51,17 +55,21 @@ final class TodoListController {
         router.get("/", handler: self.get)
         router.get(id, handler: getByID)
         router.options("/*", handler: getOptions)
+        router.post("/collection/:new", middleware: credentials)
+        router.post("/collection/:new", handler: getUserInfo)
         router.post("/", handler: addItem )
         router.post(id, handler: postByID)
         router.patch(id, handler: updateItemByID)
         router.delete(id, handler: deleteByID)
         router.delete("/", handler: deleteAll)
-        
-        router.post("/collection/:new", middleware: credentials)
-        
-        
     }
     
+    private func getUserInfo(request: RouterRequest, response: RouterResponse, next: () -> Void){
+        let tprofile = request.userProfile
+        profile = tprofile
+        /*let userID = profile!.id
+        let userName = profile!.displayName*/
+    }
     private func get(request: RouterRequest, response: RouterResponse, next: ()->Void) {
         
         do {
