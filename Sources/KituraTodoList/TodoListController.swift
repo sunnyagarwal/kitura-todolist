@@ -26,287 +26,329 @@ import Credentials
 import CredentialsFacebookToken
 
 final class TodoListController {
-    
+
+    let token = "EAAOoleLlzOABAFcEtZAo60m6jHXjkwuiZAgqMkjASg1GXMiGJpr7WOr7wjd9rjsQfRJwFwWB13V56ppQkU73BHmVFqHBO75oRvl1wPzMuhuXQvId5o7YpBDCrRTkNqBMBWeXZB1M62yKHkeiOjAu5nHhaOgQXx5aZAQ6VTBOwEKMw9ZB20SfT0LIUGuf8ZCgmIH16xxXhVPiTlHJcThBpZCwDysZBtBLgL8ZD"
+
     let todos: TodoListAPI
     let router = Router()
-    
+
     let credentials = Credentials()
     let fbCredentialsPlugin = CredentialsFacebookToken()
 
     init(backend: TodoListAPI) {
         self.todos = backend
-        
+
         credentials.register(plugin: fbCredentialsPlugin)
-        
+
         _setupRoutes()
-        
+
     }
-    
+
     private func _setupRoutes() {
-        
+
         let id = "\(config.firstPathSegment)/:id"
-        
+
         router.all("/*", middleware: BodyParser())
         router.all("/*", middleware: AllRemoteOriginMiddleware())
+        router.all("/*", middleware: credentials)
+        //router.post("/", middleware: credentials)
+        router.get("/", middleware: credentials)
         router.get("/", handler: self.get)
         router.get(id, handler: getByID)
         router.options("/*", handler: getOptions)
-        router.post("/", middleware: credentials)
+        //router.post("/", middleware: credentials)
         router.post("/", handler: addItem )
         router.post(id, handler: postByID)
         router.patch(id, handler: updateItemByID)
         router.delete(id, handler: deleteByID)
         router.delete("/", handler: deleteAll)
     }
-    
 
-    private func get(request: RouterRequest, response: RouterResponse, next: ()->Void) {
-        
-        do {
-            
-            try todos.getAll() {
-                todos in
-                
-                do {
-                    let json = JSON(todos.toDictionary())
-                    
-                    try response.status(HTTPStatusCode.OK).send(json: json).end()
-                } catch {
-                    
-                }
-            }
-        } catch {
-            response.status(.badRequest)
-            
+
+    private func get(request: RouterRequest, response: RouterResponse, next: () -> Void) {
+
+        guard let profile = request.userProfile else {
+            response.status(HTTPStatusCode.badRequest)
+            Log.error("Request does not contain facebook user profile")
+            return
         }
-        
+
+        let userId = profile.id
+        todos.get(withUser: userId) {
+            todos, error in
+            do {
+                guard error == nil else {
+                    try response.status(HTTPStatusCode.badRequest).end()
+                    Log.error(error.debugDescription)
+                    return
+                }
+                let json = JSON(todos.toDictionary())
+                try response.status(HTTPStatusCode.OK).send(json: json).end()
+            } catch {
+
+            }
+        }
+
     }
-    
-    private func getByID(request: RouterRequest, response: RouterResponse, next: ()->Void) {
-        
+
+    private func getByID(request: RouterRequest, response: RouterResponse, next: () -> Void) {
+
         guard let id = request.params["id"] else {
             response.status(HTTPStatusCode.badRequest)
             Log.error("Request does not contain ID")
             return
         }
-        
-        do {
-            try todos.get(id) {
-                
-                item in
-                
+
+        guard let profile = request.userProfile else {
+            response.status(HTTPStatusCode.badRequest)
+            Log.error("Request does not contain facebook user profile")
+            return
+        }
+
+        let user = profile.id
+
+        todos.get(withUser: user, withId: id) {
+            item, error in
+
+            do {
+                guard error == nil else {
+                    try response.status(HTTPStatusCode.badRequest).end()
+                    Log.error(error.debugDescription)
+                    return
+                }
                 if let item = item {
-                    
                     let result = JSON(item.toDictionary())
-                    
-                    do {
-                        try response.status(HTTPStatusCode.OK).send(json: result).end()
-                    } catch {
-                        Log.error("Error sending response")
-                    }
+
+                    try response.status(HTTPStatusCode.OK).send(json: result).end()
+
                 } else {
                     Log.warning("Could not find the item")
                     response.status(HTTPStatusCode.badRequest)
                     return
                 }
-                
+            } catch {
+
             }
-        } catch {
-            response.status(HTTPStatusCode.badRequest)
+
         }
-        
+
     }
-    
-    private func getOptions(request: RouterRequest, response: RouterResponse, next: ()->Void) {
+
+    private func getOptions(request: RouterRequest, response: RouterResponse, next: () -> Void) {
 
         response.headers["Access-Control-Allow-Headers"] = "accept, content-type"
         response.headers["Access-Control-Allow-Methods"] = "GET,HEAD,POST,DELETE,OPTIONS,PUT,PATCH"
-        
+
         response.status(HTTPStatusCode.OK)
-        
+
         next()
-        
+
     }
-    
-    private func addItem(request: RouterRequest, response: RouterResponse, next: ()->Void) {
-        
+
+    private func addItem(request: RouterRequest, response: RouterResponse, next: () -> Void) {
+
         guard let body = request.body else {
             response.status(HTTPStatusCode.badRequest)
             Log.error("No body found in request")
             return
         }
-        
+
         guard case let .json(json) = body else {
             response.status(HTTPStatusCode.badRequest)
             Log.error("Body is invalid JSON")
             return
         }
-        
-        guard let profile = request.userProfile else{
+
+        guard let profile = request.userProfile else {
             response.status(HTTPStatusCode.badRequest)
             Log.error("Request does not contain facebok user profile")
             return
         }
-        
-        let user = profile.id
+
         let title = json["title"].stringValue
         let order = json["order"].intValue
         let completed = json["completed"].boolValue
-        
+
         Log.info("Received \(title)")
-        
-        do {
-            try todos.add(user: user, title: title, order: order, completed: completed) {
-                
-                newItem in
-                
+
+
+        todos.add(user: profile.id, title: title, order: order, completed: completed) {
+            newItem, error in
+            do {
+                guard error == nil else {
+                    try response.status(HTTPStatusCode.badRequest).end()
+                    Log.error(error.debugDescription)
+                    return
+                }
+
                 let result = JSON(newItem.toDictionary())
-                
+
                 do {
                     try response.status(HTTPStatusCode.OK).send(json: result).end()
                 } catch {
                     Log.error("Error sending response")
                 }
-                
+            } catch {
+                Log.error("")
+
             }
-        } catch {
-            response.status(HTTPStatusCode.badRequest)
+
         }
-        
+
     }
-    
-    private func postByID(request: RouterRequest, response: RouterResponse, next: ()->Void) {
+
+    private func postByID(request: RouterRequest, response: RouterResponse, next: () -> Void) {
         guard let id = request.params["id"] else {
             response.status(HTTPStatusCode.badRequest)
             Log.error("id parameter not found in request")
             return
         }
-        
+
         guard let body = request.body else {
             response.status(HTTPStatusCode.badRequest)
             Log.error("No body found in request")
             return
         }
-        
+
         guard case let .json(json) = body else {
             response.status(HTTPStatusCode.badRequest)
             Log.error("Body is invalid JSON")
             return
         }
-        
+
         let user = json["user"].stringValue
         let title = json["title"].stringValue
         let order = json["order"].intValue
         let completed = json["completed"].boolValue
-        
-        do {
-            try todos.update(id: id, user: user, title: title, order: order, completed: completed) {
-                
-                newItem in
-                
+
+        todos.update(id: id, user: user, title: title, order: order, completed: completed) {
+            newItem, error in
+
+            do {
+                guard error == nil else {
+                    try response.status(HTTPStatusCode.badRequest).end()
+                    Log.error(error.debugDescription)
+                    return
+                }
                 let result = JSON(newItem!.toDictionary())
-                
+
                 response.status(HTTPStatusCode.OK).send(json: result)
-                
+            } catch {
+
             }
-            
-        } catch {
-            response.status(HTTPStatusCode.badRequest)
+
         }
-        
+
     }
-    
-    private func updateItemByID(request: RouterRequest, response: RouterResponse, next: ()->Void) {
+
+    private func updateItemByID(request: RouterRequest, response: RouterResponse, next: () -> Void) {
         guard let id = request.params["id"] else {
             response.status(HTTPStatusCode.badRequest)
             Log.error("id parameter not found in request")
             return
         }
-        
+
         guard let body = request.body else {
             response.status(HTTPStatusCode.badRequest)
             Log.error("No body found in request")
             return
         }
-        
+
         guard case let .json(json) = body else {
             response.status(HTTPStatusCode.badRequest)
             Log.error("Body is invalid JSON")
             return
         }
-        
+
         let user = json["user"].stringValue
         let title = json["title"].stringValue
         let order = json["order"].intValue
         let completed = json["completed"].boolValue
-        
-        do {
-            try todos.update(id: id, user: user, title: title, order: order, completed: completed) {
-                
-                newItem in
-                
+
+        todos.update(id: id, user: user, title: title, order: order, completed: completed) {
+            newItem, error in
+
+            do {
+                guard error == nil else {
+                    try response.status(HTTPStatusCode.badRequest).end()
+                    Log.error(error.debugDescription)
+                    return
+                }
+
                 if let newItem = newItem {
-                    
+
                     let result = JSON(newItem.toDictionary())
-                    
+
                     do {
                         try response.status(HTTPStatusCode.OK).send(json: result).end()
                     } catch {
                         Log.error("Error sending response")
                     }
                 }
-                
-                
+            } catch {
+
             }
-        } catch {
-            response.status(HTTPStatusCode.badRequest)
+
+
         }
-        
     }
-    
-    private func deleteByID(request: RouterRequest, response: RouterResponse, next: ()->Void) {
-        
+
+    private func deleteByID(request: RouterRequest, response: RouterResponse, next: () -> Void) {
+
         Log.info("Requesting a delete")
-        
+
         guard let id = request.params["id"] else {
             Log.warning("Could not parse ID")
             response.status(HTTPStatusCode.badRequest)
             return
         }
-        
-        do {
-            try todos.delete(id) {
-                
-                do {
-                    try response.status(HTTPStatusCode.OK).end()
-                } catch {
-                    Log.error("Could not produce response")
-                }
-                
-            }
-        } catch {
-            response.status(HTTPStatusCode.badRequest)
-        }
-        
-    }
-    
-    private func deleteAll(request: RouterRequest, response: RouterResponse, next: ()->Void) {
-        Log.info("Requested clearing the entire list")
-        
-        do {
-            try todos.clear() {
-                do {
-                    try response.status(HTTPStatusCode.OK).end()
-                } catch {
-                    Log.error("Could not produce response")
-                }
-            }
-        } catch {
-            response.status(HTTPStatusCode.badRequest)
-        }
-        
-    }
-    
-    
-}
 
+        guard let profile = request.userProfile else {
+            response.status(HTTPStatusCode.badRequest)
+            Log.error("Request does not contain facebok user profile")
+            return
+        }
+
+        todos.delete(withUser: profile.id, withId: id) {
+            error in
+
+            do {
+                guard error == nil else {
+                    try response.status(HTTPStatusCode.badRequest).end()
+                    Log.error(error.debugDescription)
+                    return
+                }
+                try response.status(HTTPStatusCode.OK).end()
+            } catch {
+                Log.error("Could not produce response")
+            }
+
+        }
+
+    }
+
+    private func deleteAll(request: RouterRequest, response: RouterResponse, next: () -> Void) {
+        Log.info("Requested clearing the entire list")
+        guard let profile = request.userProfile else {
+            response.status(HTTPStatusCode.badRequest)
+            Log.error("Request does not contain facebok user profile")
+            return
+        }
+        todos.clear(withUser: profile.id) {
+            error in
+            do {
+                guard error == nil else {
+                    try response.status(HTTPStatusCode.badRequest).end()
+                    Log.error(error.debugDescription)
+                    return
+                }
+                try response.status(HTTPStatusCode.OK).end()
+            } catch {
+                Log.error("Could not produce response")
+            }
+        }
+
+    }
+
+
+}

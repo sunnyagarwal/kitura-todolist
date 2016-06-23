@@ -34,12 +34,12 @@ protocol DictionaryConvertible {
 }
 
 extension TodoItem : DictionaryConvertible {
-    
+
     var url: String {
-        
+
         return config.url + "/" + config.firstPathSegment + "/" + id
     }
-    
+
     func toDictionary() -> JSONDictionary {
         var result = JSONDictionary()
         result["id"] = self.id
@@ -48,18 +48,18 @@ extension TodoItem : DictionaryConvertible {
         result["title"] = self.title
         result["completed"] = self.completed
         result["url"] = self.url
-        
+
         return result
     }
-    
+
 }
 
 extension Array where Element : DictionaryConvertible {
-    
+
     func toDictionary() -> [JSONDictionary] {
-    
+
         return self.map { $0.toDictionary() }
-    
+
     }
-    
+
 }

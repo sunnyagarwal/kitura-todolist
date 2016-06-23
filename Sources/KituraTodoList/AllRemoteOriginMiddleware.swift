@@ -22,9 +22,9 @@ import Kitura
  */
 class AllRemoteOriginMiddleware: RouterMiddleware {
     func handle(request: RouterRequest, response: RouterResponse, next: () -> Void) {
-        
+
         response.headers["Access-Control-Allow-Origin"] = "*"
-        
+
         next()
     }
 }
