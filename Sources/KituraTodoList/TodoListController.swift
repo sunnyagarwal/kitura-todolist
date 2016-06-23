@@ -30,49 +30,45 @@ final class TodoListController {
     let todos: TodoListAPI
     let router = Router()
 
-    let credentials = Credentials()
+    let credentialsMiddleware = Credentials()
     let fbCredentialsPlugin = CredentialsFacebookToken()
 
     init(backend: TodoListAPI) {
+
         self.todos = backend
 
-        credentials.register(plugin: fbCredentialsPlugin)
+        credentialsMiddleware.register(plugin: fbCredentialsPlugin)
 
-        _setupRoutes()
+        setupRoutes()
 
     }
 
-    private func _setupRoutes() {
+    private func setupRoutes() {
 
         let id = "\(config.firstPathSegment)/:id"
 
         router.all("/*", middleware: BodyParser())
         router.all("/*", middleware: AllRemoteOriginMiddleware())
-        router.all("/*", middleware: credentials)
-        //router.post("/", middleware: credentials)
-        router.get("/", middleware: credentials)
-        router.get("/", handler: self.get)
-        router.get(id, handler: getByID)
-        router.options("/*", handler: getOptions)
-        //router.post("/", middleware: credentials)
-        router.post("/", handler: addItem )
-        router.post(id, handler: postByID)
-        router.patch(id, handler: updateItemByID)
-        router.delete(id, handler: deleteByID)
-        router.delete("/", handler: deleteAll)
+        router.all("/*", middleware: credentialsMiddleware)
+        router.get("/", handler: onGetTodos)
+        router.get(id, handler: onGetByID)
+        router.options("/*", handler: onGetOptions)
+        router.post("/", handler: onAddItem )
+        router.post(id, handler: onUpdateByID)
+        router.patch(id, handler: onUpdateByID)
+        router.delete(id, handler: onDeleteByID)
+        router.delete("/", handler: onDeleteAll)
     }
 
-
-    private func get(request: RouterRequest, response: RouterResponse, next: () -> Void) {
+    private func onGetTodos(request: RouterRequest, response: RouterResponse, next: () -> Void) {
 
         guard let profile = request.userProfile else {
             response.status(HTTPStatusCode.badRequest)
-            Log.error("Request does not contain facebook user profile")
+            Log.error("Request does not contain Facebook user profile")
             return
         }
 
-        let userId = profile.id
-        todos.get(withUserID: userId) {
+        todos.get(withUserID: profile.id) {
             todos, error in
             do {
                 guard error == nil else {
@@ -83,13 +79,13 @@ final class TodoListController {
                 let json = JSON(todos.toDictionary())
                 try response.status(HTTPStatusCode.OK).send(json: json).end()
             } catch {
-
+                Log.error("Communication error")
             }
         }
 
     }
 
-    private func getByID(request: RouterRequest, response: RouterResponse, next: () -> Void) {
+    private func onGetByID(request: RouterRequest, response: RouterResponse, next: () -> Void) {
 
         guard let id = request.params["id"] else {
             response.status(HTTPStatusCode.badRequest)
@@ -99,13 +95,11 @@ final class TodoListController {
 
         guard let profile = request.userProfile else {
             response.status(HTTPStatusCode.badRequest)
-            Log.error("Request does not contain facebook user profile")
+            Log.error("Request does not contain Facebook user profile")
             return
         }
 
-        let user = profile.id
-
-        todos.get(withUserID: user, withDocumentID: id) {
+        todos.get(withUserID: profile.id, withDocumentID: id) {
             item, error in
 
             do {
@@ -125,14 +119,14 @@ final class TodoListController {
                     return
                 }
             } catch {
-
+                Log.error("Communication error")
             }
-
         }
-
     }
 
-    private func getOptions(request: RouterRequest, response: RouterResponse, next: () -> Void) {
+    /**
+     */
+    private func onGetOptions(request: RouterRequest, response: RouterResponse, next: () -> Void) {
 
         response.headers["Access-Control-Allow-Headers"] = "accept, content-type"
         response.headers["Access-Control-Allow-Methods"] = "GET,HEAD,POST,DELETE,OPTIONS,PUT,PATCH"
@@ -143,7 +137,9 @@ final class TodoListController {
 
     }
 
-    private func addItem(request: RouterRequest, response: RouterResponse, next: () -> Void) {
+    /**
+     */
+    private func onAddItem(request: RouterRequest, response: RouterResponse, next: () -> Void) {
 
         guard let body = request.body else {
             response.status(HTTPStatusCode.badRequest)
@@ -153,13 +149,13 @@ final class TodoListController {
 
         guard case let .json(json) = body else {
             response.status(HTTPStatusCode.badRequest)
-            Log.error("Body is invalid JSON")
+            Log.error("Body contains invalid JSON")
             return
         }
 
         guard let profile = request.userProfile else {
             response.status(HTTPStatusCode.badRequest)
-            Log.error("Request does not contain facebok user profile")
+            Log.error("Request does not contain Facebook user profile")
             return
         }
 
@@ -167,11 +163,15 @@ final class TodoListController {
         let order = json["order"].intValue
         let completed = json["completed"].boolValue
 
-        Log.info("Received \(title)")
-
+        guard title != "" else {
+            response.status(HTTPStatusCode.badRequest)
+            Log.error("Request does not contain valid title")
+            return
+        }
 
         todos.add(userID: profile.id, title: title, order: order, completed: completed) {
             newItem, error in
+
             do {
                 guard error == nil else {
                     try response.status(HTTPStatusCode.badRequest).end()
@@ -181,13 +181,15 @@ final class TodoListController {
 
                 let result = JSON(newItem.toDictionary())
 
+                Log.info("\(profile.displayName) added \(title) to their TodoList")
+
                 do {
                     try response.status(HTTPStatusCode.OK).send(json: result).end()
                 } catch {
                     Log.error("Error sending response")
                 }
             } catch {
-                Log.error("")
+                Log.error("Communication error")
 
             }
 
@@ -195,8 +197,9 @@ final class TodoListController {
 
     }
 
-    private func postByID(request: RouterRequest, response: RouterResponse, next: () -> Void) {
-        guard let id = request.params["id"] else {
+    private func onUpdateByID(request: RouterRequest, response: RouterResponse, next: () -> Void) {
+
+        guard let documentID = request.params["id"] else {
             response.status(HTTPStatusCode.badRequest)
             Log.error("id parameter not found in request")
             return
@@ -210,22 +213,28 @@ final class TodoListController {
 
         guard case let .json(json) = body else {
             response.status(HTTPStatusCode.badRequest)
-            Log.error("Body is invalid JSON")
+            Log.error("Body contains invalid JSON")
             return
         }
 
         guard let profile = request.userProfile else {
             response.status(HTTPStatusCode.badRequest)
-            Log.error("Request does not contain facebok user profile")
+            Log.error("Request does not contain Facebook user profile")
             return
         }
 
-        let user = profile.id
+        let userID = profile.id
         let title = json["title"].stringValue
         let order = json["order"].intValue
         let completed = json["completed"].boolValue
 
-        todos.update(documentID: id, userID: user, title: title, order: order, completed: completed) {
+        guard title != "" else {
+            response.status(HTTPStatusCode.badRequest)
+            Log.error("Request does not contain valid title")
+            return
+        }
+
+        todos.update(documentID: documentID, userID: userID, title: title, order: order, completed: completed) {
             newItem, error in
 
             do {
@@ -234,74 +243,24 @@ final class TodoListController {
                     Log.error(error.debugDescription)
                     return
                 }
-                let result = JSON(newItem!.toDictionary())
-
-                response.status(HTTPStatusCode.OK).send(json: result)
-            } catch {
-
-            }
-
-        }
-
-    }
-
-    private func updateItemByID(request: RouterRequest, response: RouterResponse, next: () -> Void) {
-        guard let id = request.params["id"] else {
-            response.status(HTTPStatusCode.badRequest)
-            Log.error("id parameter not found in request")
-            return
-        }
-
-        guard let body = request.body else {
-            response.status(HTTPStatusCode.badRequest)
-            Log.error("No body found in request")
-            return
-        }
-
-        guard case let .json(json) = body else {
-            response.status(HTTPStatusCode.badRequest)
-            Log.error("Body is invalid JSON")
-            return
-        }
-
-        let user = json["user"].stringValue
-        let title = json["title"].stringValue
-        let order = json["order"].intValue
-        let completed = json["completed"].boolValue
-
-        todos.update(documentID: id, userID: user, title: title, order: order, completed: completed) {
-            newItem, error in
-
-            do {
-                guard error == nil else {
-                    try response.status(HTTPStatusCode.badRequest).end()
-                    Log.error(error.debugDescription)
-                    return
-                }
-
                 if let newItem = newItem {
-
                     let result = JSON(newItem.toDictionary())
-
-                    do {
-                        try response.status(HTTPStatusCode.OK).send(json: result).end()
-                    } catch {
-                        Log.error("Error sending response")
-                    }
+                    try response.status(HTTPStatusCode.OK).send(json: result).end()
+                } else {
+                    Log.error("Database returned invalid new item")
+                    try response.status(HTTPStatusCode.badRequest).end()
                 }
             } catch {
-
+                Log.error("Communication error")
             }
 
-
         }
+
     }
 
-    private func deleteByID(request: RouterRequest, response: RouterResponse, next: () -> Void) {
+    private func onDeleteByID(request: RouterRequest, response: RouterResponse, next: () -> Void) {
 
-        Log.info("Requesting a delete")
-
-        guard let id = request.params["id"] else {
+        guard let documentID = request.params["id"] else {
             Log.warning("Could not parse ID")
             response.status(HTTPStatusCode.badRequest)
             return
@@ -309,11 +268,11 @@ final class TodoListController {
 
         guard let profile = request.userProfile else {
             response.status(HTTPStatusCode.badRequest)
-            Log.error("Request does not contain facebok user profile")
+            Log.error("Request does not contain Facebook user profile")
             return
         }
 
-        todos.delete(withUserID: profile.id, withDocumentID: id) {
+        todos.delete(withUserID: profile.id, withDocumentID: documentID) {
             error in
 
             do {
@@ -323,6 +282,7 @@ final class TodoListController {
                     return
                 }
                 try response.status(HTTPStatusCode.OK).end()
+                Log.info("\(profile.displayName) deleted document \(documentID)")
             } catch {
                 Log.error("Could not produce response")
             }
@@ -331,15 +291,17 @@ final class TodoListController {
 
     }
 
-    private func deleteAll(request: RouterRequest, response: RouterResponse, next: () -> Void) {
-        Log.info("Requested clearing the entire list")
+    private func onDeleteAll(request: RouterRequest, response: RouterResponse, next: () -> Void) {
+
         guard let profile = request.userProfile else {
             response.status(HTTPStatusCode.badRequest)
-            Log.error("Request does not contain facebok user profile")
+            Log.error("Request does not contain Facebook user profile")
             return
         }
+        
         todos.clear(withUserID: profile.id) {
             error in
+            
             do {
                 guard error == nil else {
                     try response.status(HTTPStatusCode.badRequest).end()
@@ -347,6 +309,7 @@ final class TodoListController {
                     return
                 }
                 try response.status(HTTPStatusCode.OK).end()
+                Log.info("\(profile.displayName) deleted all their documents")
             } catch {
                 Log.error("Could not produce response")
             }
