@@ -27,8 +27,6 @@ import CredentialsFacebookToken
 
 final class TodoListController {
 
-    let token = "EAAOoleLlzOABAFcEtZAo60m6jHXjkwuiZAgqMkjASg1GXMiGJpr7WOr7wjd9rjsQfRJwFwWB13V56ppQkU73BHmVFqHBO75oRvl1wPzMuhuXQvId5o7YpBDCrRTkNqBMBWeXZB1M62yKHkeiOjAu5nHhaOgQXx5aZAQ6VTBOwEKMw9ZB20SfT0LIUGuf8ZCgmIH16xxXhVPiTlHJcThBpZCwDysZBtBLgL8ZD"
-
     let todos: TodoListAPI
     let router = Router()
 
@@ -74,7 +72,7 @@ final class TodoListController {
         }
 
         let userId = profile.id
-        todos.get(withUser: userId) {
+        todos.get(withUserID: userId) {
             todos, error in
             do {
                 guard error == nil else {
@@ -107,7 +105,7 @@ final class TodoListController {
 
         let user = profile.id
 
-        todos.get(withUser: user, withId: id) {
+        todos.get(withUserID: user, withDocumentID: id) {
             item, error in
 
             do {
@@ -172,7 +170,7 @@ final class TodoListController {
         Log.info("Received \(title)")
 
 
-        todos.add(user: profile.id, title: title, order: order, completed: completed) {
+        todos.add(userID: profile.id, title: title, order: order, completed: completed) {
             newItem, error in
             do {
                 guard error == nil else {
@@ -221,7 +219,7 @@ final class TodoListController {
         let order = json["order"].intValue
         let completed = json["completed"].boolValue
 
-        todos.update(id: id, user: user, title: title, order: order, completed: completed) {
+        todos.update(documentID: id, userID: user, title: title, order: order, completed: completed) {
             newItem, error in
 
             do {
@@ -265,7 +263,7 @@ final class TodoListController {
         let order = json["order"].intValue
         let completed = json["completed"].boolValue
 
-        todos.update(id: id, user: user, title: title, order: order, completed: completed) {
+        todos.update(documentID: id, userID: user, title: title, order: order, completed: completed) {
             newItem, error in
 
             do {
@@ -309,7 +307,7 @@ final class TodoListController {
             return
         }
 
-        todos.delete(withUser: profile.id, withId: id) {
+        todos.delete(withUserID: profile.id, withDocumentID: id) {
             error in
 
             do {
@@ -334,7 +332,7 @@ final class TodoListController {
             Log.error("Request does not contain facebok user profile")
             return
         }
-        todos.clear(withUser: profile.id) {
+        todos.clear(withUserID: profile.id) {
             error in
             do {
                 guard error == nil else {

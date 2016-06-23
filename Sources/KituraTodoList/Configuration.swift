@@ -61,7 +61,8 @@ public final class Configuration {
     }
 
     private func loadRedisConfig() throws {
-        if let redisService = try CloudFoundryEnv.getAppEnv().getService(spec: Configuration.RedisServiceName) {
+        if let redisService = try CloudFoundryEnv.getAppEnv().getService(spec:
+            Configuration.RedisServiceName) {
 
             Log.info("Found Redis service named \(redisService.name)")
 
@@ -70,7 +71,8 @@ public final class Configuration {
                 let port = UInt16(credentials["username"].stringValue)!
                 let password = credentials["password"].stringValue
 
-                databaseConfiguration = DatabaseConfiguration(host: host, port: port, username: nil, password: password)
+                databaseConfiguration = DatabaseConfiguration(host: host, port: port,
+                                                              username: nil, password: password)
             }
 
         } else {
@@ -79,7 +81,8 @@ public final class Configuration {
     }
 
     private func loadCloudantConfig() throws {
-        if let service = try CloudFoundryEnv.getAppEnv().getService(spec: Configuration.CloudantServiceName) {
+        if let service = try CloudFoundryEnv.getAppEnv().getService(spec:
+            Configuration.CloudantServiceName) {
 
             Log.info("Found Cloudant service named \(service.name)")
 
@@ -89,7 +92,8 @@ public final class Configuration {
                 let password = credentials["password"].stringValue
                 let port = UInt16(credentials["port"].stringValue)!
 
-                databaseConfiguration = DatabaseConfiguration(host: host, port: port, username: username, password: password )
+                databaseConfiguration = DatabaseConfiguration(host: host, port: port,
+                                                              username: username, password: password )
             }
 
         } else {

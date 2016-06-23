@@ -37,13 +37,13 @@ extension TodoItem : DictionaryConvertible {
 
     var url: String {
 
-        return config.url + "/" + config.firstPathSegment + "/" + id
+        return config.url + "/" + config.firstPathSegment + "/" + documentID
     }
 
     func toDictionary() -> JSONDictionary {
         var result = JSONDictionary()
-        result["id"] = self.id
-        result["user"] = self.user
+        result["id"] = self.documentID
+        result["user"] = self.userID
         result["order"] = self.order
         result["title"] = self.title
         result["completed"] = self.completed
