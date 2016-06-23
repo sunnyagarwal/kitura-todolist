@@ -213,7 +213,7 @@ final class TodoListController {
             Log.error("Body is invalid JSON")
             return
         }
-        
+
         guard let profile = request.userProfile else {
             response.status(HTTPStatusCode.badRequest)
             Log.error("Request does not contain facebok user profile")
